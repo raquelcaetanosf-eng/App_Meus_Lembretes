@@ -1,0 +1,113 @@
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
+import '../models/relato.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._init();
+
+  static Database? _database;
+
+  DatabaseHelper._init();
+
+  Future<Database> get database async {
+    if (_database != null) {
+      return _database!;
+    }
+
+    _database = await _initDB('meus_lembretes.db');
+
+    return _database!;
+  }
+
+  // Inicializa o arquivo físico do banco de dados.
+  Future<Database> _initDB(String filePath) async {
+    // Obtém o caminho padrão onde o dispositivo armazena bancos de dados.
+    final dbPath = await getDatabasesPath();
+
+    // Junta o caminho da pasta com o nome do banco.
+    final path = join(dbPath, filePath);
+
+    // Abre o banco de dados.
+    // Caso ele ainda não exista, o SQLite irá criá-lo.
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
+  }
+
+  // Cria a estrutura inicial do banco de dados.
+  Future<void> _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE relatos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        texto TEXT NOT NULL,
+        criado_em TEXT NOT NULL,
+        caminho_foto TEXT,
+        caminho_video TEXT
+      )
+    ''');
+  }
+  Future<void> _upgradeDB(
+  Database db,
+  int oldVersion,
+  int newVersion,
+) async {
+  if (oldVersion < 2) {
+    await db.execute(
+      'ALTER TABLE relatos ADD COLUMN caminho_foto TEXT',
+    );
+
+    await db.execute(
+      'ALTER TABLE relatos ADD COLUMN caminho_video TEXT',
+    );
+  }
+}
+
+  // Insere um novo relato no banco de dados.
+  Future<int> inserirRelato(Relato relato) async {
+    final db = await database;
+
+    return await db.insert(
+      'relatos',
+      relato.toMap(),
+    );
+  }
+
+  // Busca todos os relatos cadastrados.
+  Future<List<Relato>> buscarRelatos() async {
+    final db = await database;
+
+    final resultado = await db.query(
+      'relatos',
+      orderBy: 'criado_em DESC',
+    );
+
+    return resultado
+        .map((map) => Relato.fromMap(map))
+        .toList();
+  }
+  // Exclui um relato pelo id.
+Future<int> excluirRelato(int id) async {
+  final db = await database;
+
+  return await db.delete(
+    'relatos',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+// Atualiza o texto de um relato existente.
+Future<int> atualizarRelato(Relato relato) async {
+  final db = await database;
+
+  return await db.update(
+    'relatos',
+    relato.toMap(),
+    where: 'id = ?',
+    whereArgs: [relato.id],
+  );
+}
+}

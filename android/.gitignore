@@ -1,0 +1,16 @@
+# Gradle
+# gradle-wrapper.jar
+# /gradlew
+# /gradlew.bat
+/.gradle
+/captures/
+
+# Configuracoes locais
+/local.properties
+GeneratedPluginRegistrant.java
+.cxx/
+
+# Arquivos sensiveis
+key.properties
+**/*.keystore
+**/*.jks
